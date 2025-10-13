@@ -4,13 +4,14 @@ import connectDB from '@/lib/mongodb';
 import { Invoice } from '@/models';
 import { invoiceSchema } from '@/lib/validations';
 import mongoose from 'mongoose';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -44,7 +45,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -54,6 +55,12 @@ export async function PUT(
     }
 
     const body = await request.json();
+    
+    // Convert string dates to Date objects before validation
+    if (body.invoiceDate && typeof body.invoiceDate === 'string') {
+      body.invoiceDate = new Date(body.invoiceDate);
+    }
+    
     const validatedData = invoiceSchema.parse(body);
 
     await connectDB();
@@ -92,7 +99,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

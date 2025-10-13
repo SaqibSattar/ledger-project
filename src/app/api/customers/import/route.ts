@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
 import { Customer } from '@/models';
+import { authOptions } from '@/lib/auth';
 import { customerSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -98,14 +99,12 @@ function parseCSV(csvContent: string): any[] {
     const customer: any = {};
 
     headers.forEach((header, index) => {
-      let value = values[index] || '';
+      const value = values[index] || '';
       
-      // Handle empty values
-      if (value === '' || value === 'undefined') {
-        value = undefined;
+      // Handle empty values - skip undefined values
+      if (value !== '' && value !== 'undefined') {
+        customer[header] = value;
       }
-
-      customer[header] = value;
     });
 
     customers.push(customer);

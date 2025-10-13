@@ -4,10 +4,19 @@ import connectDB from '@/lib/mongodb';
 import { Invoice, Product } from '@/models';
 import { invoiceSchema } from '@/lib/validations';
 import { generateInvoiceNumber } from '@/lib/utils';
+import { authOptions } from '@/lib/auth';
+
+interface QueryFilters {
+  customerId?: string;
+  invoiceDate?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -21,7 +30,7 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('fromDate') || '';
     const toDate = searchParams.get('toDate') || '';
 
-    const query: any = {};
+    const query: QueryFilters = {};
     
     if (customerId) {
       query.customerId = customerId;
@@ -66,12 +75,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user ID exists in session
+    if (!session.user?.id) {
+      return NextResponse.json({ error: 'User ID not found in session' }, { status: 401 });
+    }
+
     const body = await request.json();
+    
+    // Convert string dates to Date objects before validation
+    if (body.invoiceDate && typeof body.invoiceDate === 'string') {
+      body.invoiceDate = new Date(body.invoiceDate);
+    }
+    
     const validatedData = invoiceSchema.parse(body);
 
     await connectDB();
@@ -93,12 +113,12 @@ export async function POST(request: NextRequest) {
     await invoice.save();
 
     return NextResponse.json(invoice, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating invoice:', error);
     
-    if (error.name === 'ValidationError') {
+    if (error instanceof Error && error.name === 'ValidationError') {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: (error as unknown as { errors: unknown }).errors },
         { status: 400 }
       );
     }

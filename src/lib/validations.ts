@@ -29,7 +29,7 @@ export const productSchema = z.object({
   unit: z.string().min(1, 'Unit is required'),
   minStockAlert: z.number().min(0).optional(),
   registrationNumber: z.string().optional(),
-  registrationValidUpto: z.date().optional(),
+  registrationValidUpto: z.union([z.date(), z.string().transform((str) => new Date(str))]).optional(),
 });
 
 // Invoice item schema
@@ -48,7 +48,7 @@ export const invoiceSchema = z.object({
   totalAmount: z.number().min(0, 'Total amount must be positive'),
   paidAmount: z.number().min(0, 'Paid amount must be non-negative'),
   dueAmount: z.number().min(0, 'Due amount must be non-negative'),
-  invoiceDate: z.date(),
+  invoiceDate: z.union([z.date(), z.string().transform((str) => new Date(str))]),
 });
 
 // Ledger filter schema
@@ -64,7 +64,7 @@ export const ledgerFilterSchema = z.object({
 export const paymentSchema = z.object({
   invoiceId: z.string().min(1, 'Invoice ID is required'),
   amount: z.number().min(0.01, 'Payment amount must be positive'),
-  paymentDate: z.date(),
+  paymentDate: z.union([z.date(), z.string().transform((str) => new Date(str))]),
 });
 
 export type UserFormData = z.infer<typeof userSchema>;

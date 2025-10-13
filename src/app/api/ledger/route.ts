@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
 import { Invoice, Payment, Customer } from '@/models';
 import { calculateRunningBalance } from '@/lib/utils';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
