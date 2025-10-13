@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       .populate('createdBy', 'name email')
       .sort({ paymentDate: 1 });
 
-    // Create ledger entries in the format matching the image
+    // Create ledger entries
     const ledgerEntries: any[] = [];
 
     // Add invoice entries with detailed product information
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       invoice.items.forEach((item: any) => {
         ledgerEntries.push({
           vNo: invoice.invoiceNumber,
-          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8), // DD-MM-YY format
+          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8),
           productName: item.nameSnapshot,
           qty: item.quantity,
           rateVt: item.rate,
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     payments.forEach(payment => {
       ledgerEntries.push({
         vNo: `PAY-${payment._id.toString().slice(-4)}`,
-        date: payment.paymentDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8), // DD-MM-YY format
+        date: payment.paymentDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8),
         productName: `Payment for Invoice #${payment.invoiceId.invoiceNumber}`,
         qty: 1,
         rateVt: payment.amount,
@@ -139,24 +139,53 @@ export async function GET(request: NextRequest) {
       entry.balance = balances[index];
     });
 
-    // Calculate totals
-    const totalCredit = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-    const totalPaid = payments.reduce((sum, pay) => sum + pay.amount, 0);
-    const currentBalance = totalCredit - totalPaid;
+    // Convert to CSV format
+    const csvHeaders = [
+      'V No',
+      'Date',
+      'Product Name',
+      'Qty',
+      'Rate V.T',
+      'Policy',
+      'PR INV',
+      'Amount',
+      'Disc Reference',
+      'Debit',
+      'Credit',
+      'Balance'
+    ];
 
-    return NextResponse.json({
-      entries: ledgerEntries,
-      summary: {
-        totalCredit,
-        totalPaid,
-        currentBalance,
-        totalEntries: ledgerEntries.length,
+    const csvRows = ledgerEntries.map(entry => [
+      entry.vNo,
+      entry.date,
+      entry.productName,
+      entry.qty,
+      entry.rateVt,
+      entry.policy,
+      entry.prInv,
+      entry.amount,
+      entry.discReference,
+      entry.debit,
+      entry.credit,
+      entry.balance
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    return new NextResponse(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="ledger_export_${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
+
   } catch (error) {
-    console.error('Error generating ledger:', error);
+    console.error('Error exporting ledger:', error);
     return NextResponse.json(
-      { error: 'Failed to generate ledger' },
+      { error: 'Failed to export ledger' },
       { status: 500 }
     );
   }
