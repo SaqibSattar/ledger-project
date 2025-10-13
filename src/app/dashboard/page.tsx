@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, FileText, BookOpen } from 'lucide-react';
+import { Users, Package, FileText, BookOpen, UserCog } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -37,6 +37,13 @@ export default function DashboardPage() {
       icon: BookOpen,
       href: '/ledger',
     },
+    ...(session?.user?.role === 'admin' ? [{
+      title: 'System Users',
+      value: '0',
+      description: 'Manage users',
+      icon: UserCog,
+      href: '/users',
+    }] : []),
   ];
 
   return (

@@ -28,12 +28,17 @@ export default withAuth(
     // Role-based access control
     const isAdminRoute = req.nextUrl.pathname.startsWith('/admin');
     const isAccountantRoute = req.nextUrl.pathname.startsWith('/accountant');
+    const isUsersRoute = req.nextUrl.pathname.startsWith('/users');
 
     if (isAdminRoute && token?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
     if (isAccountantRoute && token?.role !== 'accountant') {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    if (isUsersRoute && token?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   },
@@ -53,5 +58,6 @@ export const config = {
     '/products/:path*',
     '/invoices/:path*',
     '/ledger/:path*',
+    '/users/:path*',
   ],
 };

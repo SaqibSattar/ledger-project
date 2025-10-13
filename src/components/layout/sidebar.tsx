@@ -10,7 +10,8 @@ import {
   FileText, 
   BookOpen, 
   LogOut,
-  User
+  User,
+  UserCog
 } from 'lucide-react';
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Ledger', href: '/ledger', icon: BookOpen },
+  { name: 'Users', href: '/users', icon: UserCog, adminOnly: true },
 ];
 
 export function Sidebar() {
@@ -33,6 +35,12 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
           const Icon = item.icon;
+          
+          // Only show admin-only items to admins
+          if (item.adminOnly && session?.user?.role !== 'admin') {
+            return null;
+          }
+          
           return (
             <Link
               key={item.name}
