@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Upload, Download, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 interface Customer {
@@ -25,6 +25,9 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [areaFilter, setAreaFilter] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -72,6 +75,75 @@ export default function CustomersPage() {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/customers/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert(`Successfully imported ${data.imported} customers!`);
+        fetchCustomers(); // Refresh the list
+        setShowImportModal(false);
+      } else {
+        alert('Error importing customers: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error importing customers:', error);
+      alert('Error importing customers');
+    } finally {
+      setImportLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csvContent = `name,area,role
+MUHAMMAD YAQOOB,PESHAWAR,dealer
+AHMED KHAN,KARACHI,vendor
+FATIMA ALI,LAHORE,distributor`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'customers_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportCustomers = async () => {
+    try {
+      const response = await fetch('/api/customers/export');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customers_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting customers:', error);
+      alert('Error exporting customers');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -79,12 +151,22 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-600">Manage your customer database</p>
         </div>
-        <Link href="/customers/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Customer
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCustomers}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
           </Button>
-        </Link>
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV/JSON
+          </Button>
+          <Link href="/customers/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Customer
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
@@ -176,6 +258,62 @@ export default function CustomersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Import Customers</CardTitle>
+              <CardDescription>
+                Upload a CSV or JSON file to import multiple customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Select File (CSV or JSON)
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.json"
+                  onChange={handleFileUpload}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                <p className="font-medium mb-2">CSV Format:</p>
+                <p className="text-xs mb-2">
+                  name,area,role
+                </p>
+                <Button variant="outline" size="sm" onClick={downloadTemplate}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download Template
+                </Button>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowImportModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importLoading}
+                  className="flex-1"
+                >
+                  {importLoading ? 'Importing...' : 'Select File'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
