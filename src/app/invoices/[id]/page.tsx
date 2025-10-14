@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, FileText, Printer, CreditCard, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -40,6 +42,10 @@ interface Invoice {
 export default function ViewInvoicePage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const params = useParams();
   const router = useRouter();
   const invoiceId = params.id as string;
@@ -66,6 +72,51 @@ export default function ViewInvoicePage() {
       router.push('/invoices');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!invoice || paymentAmount <= 0) {
+      alert('Please enter a valid payment amount');
+      return;
+    }
+
+    if (paymentAmount > invoice.dueAmount) {
+      alert('Payment amount cannot exceed the due amount');
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paidAmount: invoice.paidAmount + paymentAmount,
+          dueAmount: invoice.dueAmount - paymentAmount,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh the invoice data
+        await fetchInvoice();
+        setShowPaymentModal(false);
+        setPaymentAmount(0);
+        alert('Payment recorded successfully!');
+      } else {
+        const data = await response.json();
+        alert('Error recording payment: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert('Error recording payment');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -235,7 +286,13 @@ export default function ViewInvoicePage() {
               <CardTitle>Invoice Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowPaymentModal(true)}
+                disabled={invoice.dueAmount === 0}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
                 Record Payment
               </Button>
               <Button variant="outline" className="w-full">
@@ -248,6 +305,138 @@ export default function ViewInvoicePage() {
           </Card>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Record Payment</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-6">
+                Record a payment for Invoice #{invoice.invoiceNumber}
+              </p>
+
+              <form onSubmit={handleRecordPayment} className="space-y-4">
+                <div>
+                  <Label htmlFor="paymentAmount">Payment Amount *</Label>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    min="0.01"
+                    max={invoice.dueAmount}
+                    step="0.01"
+                    value={paymentAmount === 0 ? '' : paymentAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Remove leading zeros and convert to number
+                      const numericValue = value === '' ? 0 : parseFloat(value.replace(/^0+/, '') || '0');
+                      // Ensure no negative values
+                      const finalValue = Math.max(0, numericValue);
+                      setPaymentAmount(finalValue);
+                    }}
+                    onFocus={(e) => {
+                      // Clear the field when user starts typing if it's 0
+                      if (paymentAmount === 0) {
+                        e.target.value = '';
+                        setPaymentAmount(0);
+                      }
+                    }}
+                    placeholder="Enter payment amount"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maximum: {formatCurrency(invoice.dueAmount)}
+                  </p>
+                  {paymentAmount > invoice.dueAmount && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Payment amount cannot exceed the due amount
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="paymentDate">Payment Date *</Label>
+                  <Input
+                    id="paymentDate"
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Payment Summary</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Current Due:</span>
+                      <span>{formatCurrency(invoice.dueAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment Amount:</span>
+                      <span className={paymentAmount > invoice.dueAmount ? 'text-red-600' : 'text-green-600'}>
+                        {formatCurrency(paymentAmount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1 font-medium">
+                      <span>Remaining Due:</span>
+                      <span className={
+                        Math.max(0, invoice.dueAmount - paymentAmount) === 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }>
+                        {formatCurrency(Math.max(0, invoice.dueAmount - paymentAmount))}
+                      </span>
+                    </div>
+                    {paymentAmount > invoice.dueAmount && (
+                      <div className="text-xs text-red-500 mt-2 p-2 bg-red-50 rounded">
+                        ⚠️ Payment amount exceeds due amount. Please adjust.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={paymentLoading || paymentAmount <= 0 || paymentAmount > invoice.dueAmount}
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Recording...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Record Payment
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

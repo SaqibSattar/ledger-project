@@ -39,6 +39,7 @@ export default function NewInvoicePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paidAmount, setPaidAmount] = useState(0);
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -105,6 +106,7 @@ export default function NewInvoicePage() {
   };
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+  const dueAmount = Math.max(0, totalAmount - paidAmount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,8 +131,8 @@ export default function NewInvoicePage() {
             productId: item.productId,
           })),
           totalAmount,
-          paidAmount: 0,
-          dueAmount: totalAmount,
+          paidAmount,
+          dueAmount,
           invoiceDate: new Date(invoiceDate),
         }),
       });
@@ -193,6 +195,41 @@ export default function NewInvoicePage() {
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
               />
+            </div>
+            <div>
+              <Label htmlFor="paidAmount">Amount Paid (Optional)</Label>
+              <Input
+                id="paidAmount"
+                type="number"
+                min="0"
+                max={totalAmount}
+                step="0.01"
+                value={paidAmount === 0 ? '' : paidAmount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Remove leading zeros and convert to number
+                  const numericValue = value === '' ? 0 : parseFloat(value.replace(/^0+/, '') || '0');
+                  // Ensure no negative values and not greater than total
+                  const finalValue = Math.max(0, Math.min(numericValue, totalAmount));
+                  setPaidAmount(finalValue);
+                }}
+                onFocus={(e) => {
+                  // Clear the field when user starts typing if it's 0
+                  if (paidAmount === 0) {
+                    e.target.value = '';
+                    setPaidAmount(0);
+                  }
+                }}
+                placeholder="Enter amount paid by customer"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty if no payment received yet
+              </p>
+              {paidAmount > totalAmount && (
+                <p className="text-xs text-red-500 mt-1">
+                  Paid amount cannot exceed total amount
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -284,20 +321,51 @@ export default function NewInvoicePage() {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div className="text-lg font-medium">
-                Total Amount: {formatCurrency(totalAmount)}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="text-lg font-medium">
+                  Total Amount: {formatCurrency(totalAmount)}
+                </div>
               </div>
-              <div className="flex gap-4">
-                <Link href="/invoices">
-                  <Button variant="outline" type="button">
-                    Cancel
-                  </Button>
-                </Link>
-                <Button type="submit" disabled={isLoading || items.length === 0}>
-                  {isLoading ? 'Creating...' : 'Create Invoice'}
+              
+              {paidAmount > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Amount Paid:</span>
+                  <span className={paidAmount > totalAmount ? 'text-red-600' : 'text-green-600'} font-medium>
+                    {formatCurrency(paidAmount)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center text-lg font-semibold border-t pt-4">
+                <span>Amount Due:</span>
+                <span className={dueAmount > 0 ? 'text-red-600' : 'text-green-600'}>
+                  {formatCurrency(dueAmount)}
+                </span>
+              </div>
+              
+              {paidAmount > totalAmount && (
+                <div className="text-center text-red-600 text-sm font-medium bg-red-50 p-2 rounded">
+                  ⚠️ Paid amount exceeds total amount
+                </div>
+              )}
+              
+              {dueAmount === 0 && paidAmount > 0 && paidAmount <= totalAmount && (
+                <div className="text-center text-green-600 text-sm font-medium">
+                  ✓ Invoice Fully Paid
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-4 mt-6">
+              <Link href="/invoices">
+                <Button variant="outline" type="button">
+                  Cancel
                 </Button>
-              </div>
+              </Link>
+              <Button type="submit" disabled={isLoading || items.length === 0}>
+                {isLoading ? 'Creating...' : 'Create Invoice'}
+              </Button>
             </div>
           </CardContent>
         </Card>
