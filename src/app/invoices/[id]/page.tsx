@@ -91,7 +91,27 @@ export default function ViewInvoicePage() {
     setPaymentLoading(true);
 
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}`, {
+      // First, create a Payment record
+      const paymentResponse = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invoiceId: invoiceId,
+          amount: paymentAmount,
+          paymentDate: new Date(paymentDate),
+        }),
+      });
+
+      if (!paymentResponse.ok) {
+        const data = await paymentResponse.json();
+        alert('Error creating payment record: ' + data.error);
+        return;
+      }
+
+      // Then, update the invoice
+      const invoiceResponse = await fetch(`/api/invoices/${invoiceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -102,15 +122,15 @@ export default function ViewInvoicePage() {
         }),
       });
 
-      if (response.ok) {
+      if (invoiceResponse.ok) {
         // Refresh the invoice data
         await fetchInvoice();
         setShowPaymentModal(false);
         setPaymentAmount(0);
         alert('Payment recorded successfully!');
       } else {
-        const data = await response.json();
-        alert('Error recording payment: ' + data.error);
+        const data = await invoiceResponse.json();
+        alert('Error updating invoice: ' + data.error);
       }
     } catch (error) {
       console.error('Error recording payment:', error);

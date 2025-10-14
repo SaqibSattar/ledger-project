@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query for invoices
-    const invoiceQuery: any = {};
+    const invoiceQuery: Record<string, unknown> = {};
     if (customerId) {
       invoiceQuery.customerId = customerId;
     }
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get payments for the same customers and date range
-    const paymentQuery: any = {};
+    const paymentQuery: Record<string, unknown> = {};
     if (customerIds.length > 0) {
       paymentQuery.invoiceId = { $in: invoices.map(inv => inv._id) };
     }
@@ -89,7 +89,22 @@ export async function GET(request: NextRequest) {
       .sort({ paymentDate: 1 });
 
     // Create ledger entries in the format matching the image
-    const ledgerEntries: any[] = [];
+    const ledgerEntries: Array<{
+      vNo: string;
+      date: string;
+      productName: string;
+      qty: number;
+      rateVt: number;
+      policy: string;
+      prInv: string;
+      amount: number;
+      discReference: string;
+      debit: number;
+      credit: number;
+      balance: number;
+      customer: unknown;
+      createdBy: unknown;
+    }> = [];
 
     // Add invoice entries with detailed product information
     invoices.forEach(invoice => {
@@ -131,6 +146,32 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // Add payment entries for invoices with paid amounts but no separate payment records
+    invoices.forEach(invoice => {
+      const invoicePayments = payments.filter(p => p.invoiceId._id.toString() === invoice._id.toString());
+      const totalPaidFromRecords = invoicePayments.reduce((sum, p) => sum + p.amount, 0);
+      
+      if (invoice.paidAmount > totalPaidFromRecords) {
+        // Create a payment entry for the difference
+        const paymentAmount = invoice.paidAmount - totalPaidFromRecords;
+        ledgerEntries.push({
+          vNo: `PAY-${invoice.invoiceNumber.slice(-4)}`,
+          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8),
+          productName: `Payment for Invoice #${invoice.invoiceNumber}`,
+          qty: 1,
+          rateVt: paymentAmount,
+          policy: 'CASH',
+          prInv: '',
+          amount: paymentAmount,
+          discReference: '',
+          debit: 0,
+          credit: paymentAmount,
+          customer: invoice.customerId,
+          createdBy: invoice.createdBy,
+        });
+      }
+    });
+
     // Sort by date
     ledgerEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -142,7 +183,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate totals
     const totalCredit = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-    const totalPaid = payments.reduce((sum, pay) => sum + pay.amount, 0);
+    const totalPaid = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
     const currentBalance = totalCredit - totalPaid;
 
     return NextResponse.json({
