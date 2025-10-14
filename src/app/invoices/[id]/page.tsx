@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, FileText, Printer, CreditCard, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface InvoiceItem {
   productId: string;
@@ -50,13 +51,7 @@ export default function ViewInvoicePage() {
   const router = useRouter();
   const invoiceId = params.id as string;
 
-  useEffect(() => {
-    if (invoiceId) {
-      fetchInvoice();
-    }
-  }, [invoiceId]);
-
-  const fetchInvoice = async () => {
+  const fetchInvoice = useCallback(async () => {
     try {
       const response = await fetch(`/api/invoices/${invoiceId}`);
       const data = await response.json();
@@ -73,18 +68,24 @@ export default function ViewInvoicePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [invoiceId, router]);
+
+  useEffect(() => {
+    if (invoiceId) {
+      fetchInvoice();
+    }
+  }, [invoiceId, fetchInvoice]);
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!invoice || paymentAmount <= 0) {
-      alert('Please enter a valid payment amount');
+      toast.error('Please enter a valid payment amount');
       return;
     }
 
     if (paymentAmount > invoice.dueAmount) {
-      alert('Payment amount cannot exceed the due amount');
+      toast.error('Payment amount cannot exceed the due amount');
       return;
     }
 
@@ -106,7 +107,7 @@ export default function ViewInvoicePage() {
 
       if (!paymentResponse.ok) {
         const data = await paymentResponse.json();
-        alert('Error creating payment record: ' + data.error);
+        toast.error('Error creating payment record: ' + data.error);
         return;
       }
 
@@ -127,14 +128,14 @@ export default function ViewInvoicePage() {
         await fetchInvoice();
         setShowPaymentModal(false);
         setPaymentAmount(0);
-        alert('Payment recorded successfully!');
+        toast.success('Payment recorded successfully!');
       } else {
         const data = await invoiceResponse.json();
-        alert('Error updating invoice: ' + data.error);
+        toast.error('Error updating invoice: ' + data.error);
       }
     } catch (error) {
       console.error('Error recording payment:', error);
-      alert('Error recording payment');
+      toast.error('Error recording payment');
     } finally {
       setPaymentLoading(false);
     }
@@ -172,7 +173,7 @@ export default function ViewInvoicePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Invoice Not Found</h1>
-            <p className="text-gray-600">The invoice you're looking for doesn't exist.</p>
+            <p className="text-gray-600">The invoice you&apos;re looking for doesn&apos;t exist.</p>
           </div>
         </div>
       </div>

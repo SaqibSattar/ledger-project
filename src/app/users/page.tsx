@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Edit, Trash2, UserPlus, Shield, UserCheck } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
 
 interface User {
@@ -125,11 +126,11 @@ export default function UsersPage() {
         setUsers(users.filter(user => user._id !== id));
       } else {
         const data = await response.json();
-        alert('Error deleting user: ' + data.error);
+        toast.error('Error deleting user: ' + data.error);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error deleting user');
+      toast.error('Error deleting user');
     }
   };
 

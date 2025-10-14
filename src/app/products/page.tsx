@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, Edit, Trash2, Package, Upload, Download, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface Product {
   _id: string;
@@ -73,11 +74,11 @@ export default function ProductsPage() {
         setProducts(products.filter(product => product._id !== id));
       } else {
         const data = await response.json();
-        alert('Error deleting product: ' + data.error);
+        toast.error('Error deleting product: ' + data.error);
       }
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error deleting product');
+      toast.error('Error deleting product');
     }
   };
 
@@ -103,15 +104,15 @@ export default function ProductsPage() {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`Successfully imported ${data.imported} products!`);
+        toast.success(`Successfully imported ${data.imported} products!`);
         fetchProducts(); // Refresh the list
         setShowImportModal(false);
       } else {
-        alert('Error importing products: ' + data.error);
+        toast.error('Error importing products: ' + data.error);
       }
     } catch (error) {
       console.error('Error importing products:', error);
-      alert('Error importing products');
+      toast.error('Error importing products');
     } finally {
       setImportLoading(false);
       if (fileInputRef.current) {
@@ -151,7 +152,7 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting products:', error);
-      alert('Error exporting products');
+      toast.error('Error exporting products');
     }
   };
 

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface Customer {
   _id: string;
@@ -83,7 +84,7 @@ export default function NewInvoicePage() {
     }]);
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -112,7 +113,7 @@ export default function NewInvoicePage() {
     e.preventDefault();
     
     if (!selectedCustomer || items.length === 0) {
-      alert('Please select a customer and add at least one item');
+      toast.error('Please select a customer and add at least one item');
       return;
     }
 
@@ -138,14 +139,15 @@ export default function NewInvoicePage() {
       });
 
       if (response.ok) {
+        toast.success('Invoice created successfully!');
         router.push('/invoices');
       } else {
         const data = await response.json();
-        alert('Error creating invoice: ' + data.error);
+        toast.error('Error creating invoice: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert('Error creating invoice');
+      toast.error('Error creating invoice');
     } finally {
       setIsLoading(false);
     }
@@ -250,7 +252,7 @@ export default function NewInvoicePage() {
           <CardContent>
             {items.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No items added yet. Click "Add Item" to start.
+                No items added yet. Click &quot;Add Item&quot; to start.
               </div>
             ) : (
               <Table>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Edit, Trash2, Upload, Download, FileText, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 interface Customer {
   _id: string;
@@ -67,11 +68,11 @@ export default function CustomersPage() {
         setCustomers(customers.filter(customer => customer._id !== id));
       } else {
         const data = await response.json();
-        alert('Error deleting customer: ' + data.error);
+        toast.error('Error deleting customer: ' + data.error);
       }
     } catch (error) {
       console.error('Error deleting customer:', error);
-      alert('Error deleting customer');
+      toast.error('Error deleting customer');
     }
   };
 
@@ -92,15 +93,15 @@ export default function CustomersPage() {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`Successfully imported ${data.imported} customers!`);
+        toast.success(`Successfully imported ${data.imported} customers!`);
         fetchCustomers(); // Refresh the list
         setShowImportModal(false);
       } else {
-        alert('Error importing customers: ' + data.error);
+        toast.error('Error importing customers: ' + data.error);
       }
     } catch (error) {
       console.error('Error importing customers:', error);
-      alert('Error importing customers');
+      toast.error('Error importing customers');
     } finally {
       setImportLoading(false);
       if (fileInputRef.current) {
@@ -140,7 +141,7 @@ FATIMA ALI,LAHORE,distributor`;
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting customers:', error);
-      alert('Error exporting customers');
+      toast.error('Error exporting customers');
     }
   };
 

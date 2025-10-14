@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Download, BookOpen, FileText, Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface Customer {
   _id: string;
@@ -112,7 +113,7 @@ export default function LedgerPage() {
       // Get only the ledger content (excluding export buttons)
       const ledgerContent = document.querySelector('.ledger-content');
       if (!ledgerContent) {
-        alert('No ledger data to export');
+        toast.error('No ledger data to export');
         return;
       }
 
@@ -156,7 +157,7 @@ export default function LedgerPage() {
       
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      alert('Error exporting PDF. Please try again.');
+      toast.error('Error exporting PDF. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -184,7 +185,7 @@ export default function LedgerPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting CSV:', error);
-      alert('Error exporting CSV. Please try again.');
+      toast.error('Error exporting CSV. Please try again.');
     }
   };
 
@@ -192,7 +193,7 @@ export default function LedgerPage() {
     // Get the ledger content
     const ledgerContent = document.querySelector('.ledger-content');
     if (!ledgerContent) {
-      alert('No ledger data to print');
+      toast.error('No ledger data to print');
       return;
     }
 
