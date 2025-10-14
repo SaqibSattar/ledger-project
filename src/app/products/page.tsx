@@ -319,7 +319,7 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
                 <h2 className="text-xl font-semibold text-gray-900">Import Products</h2>
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>

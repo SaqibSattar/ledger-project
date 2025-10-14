@@ -268,7 +268,7 @@ FATIMA ALI,LAHORE,distributor`;
                 <h2 className="text-xl font-semibold text-gray-900">Import Customers</h2>
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
