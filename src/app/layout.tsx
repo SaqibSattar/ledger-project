@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ledger & Invoicing System",
   description: "A comprehensive ledger and invoicing system for managing customers, products, and financial records",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

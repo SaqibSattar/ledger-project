@@ -59,5 +59,12 @@ export const config = {
     '/invoices/:path*',
     '/ledger/:path*',
     '/users/:path*',
+    '/api/customers/:path*',
+    '/api/products/:path*',
+    '/api/invoices/:path*',
+    '/api/ledger/:path*',
+    '/api/users/:path*',
+    '/api/payments/:path*',
+    '/api/dashboard/:path*',
   ],
 };
