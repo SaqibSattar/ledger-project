@@ -276,7 +276,7 @@ export default function UsersPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(user._id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

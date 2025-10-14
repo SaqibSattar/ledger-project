@@ -437,7 +437,7 @@ export default function ViewInvoicePage() {
                   <Button
                     type="submit"
                     disabled={paymentLoading || paymentAmount <= 0 || paymentAmount > invoice.dueAmount}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 border border-green-600"
                   >
                     {paymentLoading ? (
                       <>

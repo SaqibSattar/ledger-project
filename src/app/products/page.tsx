@@ -296,7 +296,7 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(product._id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -402,7 +402,7 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={importLoading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 border border-blue-600"
                 >
                   {importLoading ? (
                     <>
