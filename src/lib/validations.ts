@@ -67,11 +67,22 @@ export const paymentSchema = z.object({
   paymentDate: z.union([z.date(), z.string().transform((str) => new Date(str))]),
 });
 
+// Invoice update schema (for partial updates like payments)
+export const invoiceUpdateSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required').optional(),
+  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
+  totalAmount: z.number().min(0, 'Total amount must be positive').optional(),
+  paidAmount: z.number().min(0, 'Paid amount must be non-negative').optional(),
+  dueAmount: z.number().min(0, 'Due amount must be non-negative').optional(),
+  invoiceDate: z.union([z.date(), z.string().transform((str) => new Date(str))]).optional(),
+});
+
 export type UserFormData = z.infer<typeof userSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type CustomerFormData = z.infer<typeof customerSchema>;
 export type ProductFormData = z.infer<typeof productSchema>;
 export type InvoiceItemFormData = z.infer<typeof invoiceItemSchema>;
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+export type InvoiceUpdateFormData = z.infer<typeof invoiceUpdateSchema>;
 export type LedgerFilterFormData = z.infer<typeof ledgerFilterSchema>;
 export type PaymentFormData = z.infer<typeof paymentSchema>;
