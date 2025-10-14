@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Edit, Trash2, Upload, Download, FileText } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Upload, Download, FileText, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Customer {
@@ -261,40 +261,86 @@ FATIMA ALI,LAHORE,distributor`;
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Import Customers</CardTitle>
-              <CardDescription>
-                Upload a CSV or JSON file to import multiple customers
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Select File (CSV or JSON)
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.json"
-                  onChange={handleFileUpload}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Import Customers</h2>
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
               
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">CSV Format:</p>
-                <p className="text-xs mb-2">
-                  name,area,role
-                </p>
-                <Button variant="outline" size="sm" onClick={downloadTemplate}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Download Template
-                </Button>
+              <p className="text-sm text-gray-600 mb-6">
+                Upload a CSV or JSON file to import multiple customers at once. Make sure your file follows the correct format.
+              </p>
+
+              <div className="space-y-6">
+                {/* File Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Choose File
+                  </label>
+                  <div className="relative">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    >
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        Click to select a file or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Supports CSV and JSON files
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Format Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Required CSV Format</h3>
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-600">
+                      Your CSV file should have the following columns (in order):
+                    </p>
+                    <div className="bg-white rounded border p-3">
+                      <code className="text-xs text-gray-800 break-all">
+                        name,area,role
+                      </code>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <p><strong>Note:</strong> All fields are required.</p>
+                      <p><strong>Role options:</strong> dealer, vendor, distributor</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Template Download */}
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Need a template?</p>
+                    <p className="text-xs text-blue-700">Download our sample CSV file to get started</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={downloadTemplate} className="border-blue-200 text-blue-700 hover:bg-blue-100">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t">
                 <Button
                   variant="outline"
                   onClick={() => setShowImportModal(false)}
@@ -305,13 +351,23 @@ FATIMA ALI,LAHORE,distributor`;
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={importLoading}
-                  className="flex-1"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
-                  {importLoading ? 'Importing...' : 'Select File'}
+                  {importLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </>
+                  )}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
