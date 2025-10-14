@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, Eye, FileText, X } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { Pagination, PaginationInfo } from '@/components/ui/pagination';
 
 interface Invoice {
   _id: string;
@@ -35,6 +36,10 @@ export default function InvoicesPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
 
   // Debounce search term
   useEffect(() => {
@@ -47,7 +52,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchInvoices();
-  }, [debouncedSearchTerm, fromDate, toDate]);
+  }, [debouncedSearchTerm, fromDate, toDate, currentPage]);
 
   const fetchInvoices = useCallback(async () => {
     try {
@@ -56,12 +61,16 @@ export default function InvoicesPage() {
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (fromDate) params.append('fromDate', fromDate);
       if (toDate) params.append('toDate', toDate);
+      params.append('page', currentPage.toString());
+      params.append('limit', itemsPerPage.toString());
       
       const response = await fetch(`/api/invoices?${params}`);
       const data = await response.json();
       
       if (response.ok) {
         setInvoices(data.invoices);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.total);
       } else {
         console.error('Error fetching invoices:', data.error);
       }
@@ -70,7 +79,7 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchTerm, fromDate, toDate]);
+  }, [debouncedSearchTerm, fromDate, toDate, currentPage, itemsPerPage]);
 
   const clearSearch = () => {
     setSearchTerm('');
@@ -223,6 +232,26 @@ export default function InvoicesPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          
+          {/* Pagination */}
+          {!loading && invoices.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <PaginationInfo
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                className="text-center"
+              />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, Edit, Trash2, Upload, Download, FileText, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationInfo } from '@/components/ui/pagination';
 
 interface Customer {
   _id: string;
@@ -28,11 +29,15 @@ export default function CustomersPage() {
   const [areaFilter, setAreaFilter] = useState('');
   const [importLoading, setImportLoading] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCustomers();
-  }, [searchTerm, areaFilter]);
+  }, [searchTerm, areaFilter, currentPage]);
 
   const fetchCustomers = async () => {
     try {
@@ -40,12 +45,16 @@ export default function CustomersPage() {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (areaFilter) params.append('area', areaFilter);
+      params.append('page', currentPage.toString());
+      params.append('limit', itemsPerPage.toString());
       
       const response = await fetch(`/api/customers?${params}`);
       const data = await response.json();
       
       if (response.ok) {
         setCustomers(data.customers);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.total);
       } else {
         console.error('Error fetching customers:', data.error);
       }
@@ -256,6 +265,26 @@ FATIMA ALI,LAHORE,distributor`;
                 ))}
               </TableBody>
             </Table>
+          )}
+          
+          {/* Pagination */}
+          {!loading && customers.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <PaginationInfo
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                className="text-center"
+              />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

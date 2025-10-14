@@ -9,6 +9,7 @@ import { Plus, Search, Edit, Trash2, Package, Upload, Download, X, Loader2 } fro
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { Pagination, PaginationInfo } from '@/components/ui/pagination';
 
 interface Product {
   _id: string;
@@ -34,6 +35,10 @@ export default function ProductsPage() {
   const [showLowStock, setShowLowStock] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
@@ -42,12 +47,16 @@ export default function ProductsPage() {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (showLowStock) params.append('lowStock', 'true');
+      params.append('page', currentPage.toString());
+      params.append('limit', itemsPerPage.toString());
       
       const response = await fetch(`/api/products?${params}`);
       const data = await response.json();
       
       if (response.ok) {
         setProducts(data.products);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.total);
       } else {
         console.error('Error fetching products:', data.error);
       }
@@ -56,7 +65,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, showLowStock]);
+  }, [searchTerm, showLowStock, currentPage, itemsPerPage]);
 
   useEffect(() => {
     fetchProducts();
@@ -307,6 +316,26 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
                 ))}
               </TableBody>
             </Table>
+          )}
+          
+          {/* Pagination */}
+          {!loading && products.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <PaginationInfo
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                className="text-center"
+              />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
