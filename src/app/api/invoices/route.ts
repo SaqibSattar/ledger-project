@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
-import { Invoice, Product } from '@/models';
+import { Invoice, Product, Customer } from '@/models';
 import { invoiceSchema } from '@/lib/validations';
 import { generateInvoiceNumber } from '@/lib/utils';
 import { authOptions } from '@/lib/auth';
 
 interface QueryFilters {
-  customerId?: string;
+  customerId?: string | { $in: string[] };
   invoiceDate?: {
     $gte?: Date;
     $lte?: Date;
@@ -26,13 +26,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
     const customerId = searchParams.get('customerId') || '';
     const fromDate = searchParams.get('fromDate') || '';
     const toDate = searchParams.get('toDate') || '';
 
     const query: QueryFilters = {};
     
-    if (customerId) {
+    // Handle search functionality
+    if (search) {
+      // Find customers that match the search term
+      const customerQuery = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { area: { $regex: search, $options: 'i' } }
+        ]
+      };
+      
+      const matchingCustomers = await Customer.find(customerQuery).select('_id');
+      const customerIds = matchingCustomers.map(customer => customer._id);
+      
+      if (customerIds.length > 0) {
+        query.customerId = { $in: customerIds };
+      } else {
+        // If no customers match, return empty result
+        query.customerId = { $in: [] };
+      }
+    } else if (customerId) {
       query.customerId = customerId;
     }
     

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Eye, FileText } from 'lucide-react';
+import { Plus, Search, Eye, FileText, X } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -34,16 +34,26 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchInvoices();
-  }, [searchTerm, fromDate, toDate]);
+  }, [debouncedSearchTerm, fromDate, toDate]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
       if (fromDate) params.append('fromDate', fromDate);
       if (toDate) params.append('toDate', toDate);
       
@@ -60,6 +70,12 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
+  }, [debouncedSearchTerm, fromDate, toDate]);
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setFromDate('');
+    setToDate('');
   };
 
   return (
@@ -83,16 +99,24 @@ export default function InvoicesPage() {
           <CardDescription>Find invoices by customer or date range</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by customer..."
+                  placeholder="Search by customer name or area..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
             <div>
@@ -110,6 +134,17 @@ export default function InvoicesPage() {
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
               />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={clearSearch}
+                className="flex-1"
+                disabled={!searchTerm && !fromDate && !toDate}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
             </div>
           </div>
         </CardContent>
