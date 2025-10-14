@@ -30,7 +30,7 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -42,7 +42,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [searchTerm, roleFilter, currentPage]);
+  }, [searchTerm, roleFilter, currentPage, itemsPerPage]);
 
   const fetchUsers = async () => {
     try {
@@ -310,6 +310,11 @@ export default function UsersPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1); // Reset to first page when changing items per page
+                }}
                 onPageChange={(page) => {
                   setCurrentPage(page);
                   window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -38,7 +38,7 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
@@ -330,6 +330,11 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={(newItemsPerPage) => {
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1); // Reset to first page when changing items per page
+                }}
                 onPageChange={(page) => {
                   setCurrentPage(page);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
