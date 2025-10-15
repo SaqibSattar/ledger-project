@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,13 +16,15 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
     }
 
     await connectDB();
     
-    const invoice = await Invoice.findById(params.id)
+    const invoice = await Invoice.findById(id)
       .populate('customerId', 'name area')
       .populate('createdBy', 'name email');
 
@@ -42,7 +44,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -50,7 +52,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
     }
 
@@ -67,7 +71,7 @@ export async function PUT(
     await connectDB();
 
     const invoice = await Invoice.findByIdAndUpdate(
-      params.id,
+      id,
       validatedData,
       { new: true, runValidators: true }
     ).populate('customerId', 'name area')
@@ -97,7 +101,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -105,13 +109,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
     }
 
     await connectDB();
 
-    const invoice = await Invoice.findByIdAndDelete(params.id);
+    const invoice = await Invoice.findByIdAndDelete(id);
 
     if (!invoice) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
