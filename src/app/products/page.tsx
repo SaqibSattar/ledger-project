@@ -319,7 +319,7 @@ HITTER 1.9 EC 200-ML,Insecticide emulsifiable concentrate,275,200,ml,20,REG-003,
           )}
           
           {/* Pagination */}
-          {!loading && products.length > 0 && (
+          {!loading && totalItems > 0 && (
             <div className="mt-6 space-y-4">
               <PaginationInfo
                 currentPage={currentPage}

@@ -48,11 +48,9 @@ export function Pagination({
     return rangeWithDots;
   };
 
-  if (totalPages <= 1) return null;
-
   return (
     <div className={cn('flex items-center justify-between', className)}>
-      {/* Items per page selector */}
+      {/* Items per page selector - Always show */}
       <div className="flex items-center space-x-2">
         <span className="text-sm text-gray-500">Show</span>
         <Select
@@ -67,8 +65,9 @@ export function Pagination({
         <span className="text-sm text-gray-500">per page</span>
       </div>
 
-      {/* Pagination controls */}
-      <div className="flex items-center space-x-2">
+      {/* Pagination controls - Only show if more than 1 page */}
+      {totalPages > 1 && (
+        <div className="flex items-center space-x-2">
         <Button
           variant="outline"
           size="sm"
@@ -109,7 +108,8 @@ export function Pagination({
           Next
           <ChevronRight className="h-4 w-4" />
         </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
