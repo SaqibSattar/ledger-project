@@ -2,7 +2,9 @@
 
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, FileText, BookOpen, UserCog, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Users, Package, FileText, BookOpen, UserCog, AlertTriangle, TrendingUp, DollarSign, Clock, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -32,11 +34,37 @@ interface DashboardStats {
   }>;
 }
 
+interface SalesAnalytics {
+  period: string;
+  totalSales: number;
+  paidAmount: number;
+  pendingAmount: number;
+  totalInvoices: number;
+  paidInvoices: number;
+  pendingInvoices: number;
+  averageInvoiceValue: number;
+  topProducts: Array<{
+    productName: string;
+    quantity: number;
+    totalAmount: number;
+  }>;
+  recentInvoices: Array<{
+    invoiceNumber: string;
+    customerName: string;
+    amount: number;
+    status: 'paid' | 'pending';
+    date: string;
+  }>;
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [salesAnalytics, setSalesAnalytics] = useState<SalesAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [salesLoading, setSalesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,6 +84,26 @@ export default function DashboardPage() {
 
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    const fetchSalesAnalytics = async () => {
+      try {
+        setSalesLoading(true);
+        const response = await fetch(`/api/sales/analytics?period=${selectedPeriod}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sales analytics');
+        }
+        const data = await response.json();
+        setSalesAnalytics(data.analytics);
+      } catch (err) {
+        console.error('Error fetching sales analytics:', err);
+      } finally {
+        setSalesLoading(false);
+      }
+    };
+
+    fetchSalesAnalytics();
+  }, [selectedPeriod]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PK', {
@@ -226,6 +274,196 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sales Analytics Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Sales Analytics
+              </CardTitle>
+              <CardDescription>
+                Track your sales performance across different time periods
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days</option>
+                <option value="month">Last 30 Days</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="year">Last Year</option>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {salesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-20 bg-gray-200 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
+          ) : salesAnalytics ? (
+            <div className="space-y-6">
+              {/* Sales Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Sales</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {formatCurrency(salesAnalytics.totalSales)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {salesAnalytics.totalInvoices} invoices
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Paid Amount</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(salesAnalytics.paidAmount)}
+                        </p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {salesAnalytics.paidInvoices} paid invoices
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Pending Amount</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {formatCurrency(salesAnalytics.pendingAmount)}
+                        </p>
+                      </div>
+                      <Clock className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {salesAnalytics.pendingInvoices} pending invoices
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Avg. Invoice Value</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {formatCurrency(salesAnalytics.averageInvoiceValue)}
+                        </p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Per invoice
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Top Products and Recent Invoices */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Products</CardTitle>
+                    <CardDescription>
+                      Best selling products in the selected period
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {salesAnalytics.topProducts.length > 0 ? (
+                      <div className="space-y-3">
+                        {salesAnalytics.topProducts.map((product, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{product.productName}</p>
+                              <p className="text-xs text-gray-600">
+                                Qty: {product.quantity}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(product.totalAmount)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        No sales data for this period
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Sales</CardTitle>
+                    <CardDescription>
+                      Latest invoices in the selected period
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {salesAnalytics.recentInvoices.length > 0 ? (
+                      <div className="space-y-3">
+                        {salesAnalytics.recentInvoices.map((invoice, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">#{invoice.invoiceNumber}</p>
+                              <p className="text-xs text-gray-600">{invoice.customerName}</p>
+                              <p className="text-xs text-gray-500">{formatDate(invoice.date)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(invoice.amount)}</p>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                invoice.status === 'paid' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-orange-100 text-orange-800'
+                              }`}>
+                                {invoice.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        No invoices for this period
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              Failed to load sales analytics
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
