@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Edit, Trash2, UserPlus, Shield, UserCheck } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserPlus, Shield, UserCheck, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
 import { Pagination, PaginationInfo } from '@/components/ui/pagination';
@@ -39,6 +39,8 @@ export default function UsersPage() {
   });
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -155,6 +157,8 @@ export default function UsersPage() {
     setFormData({ name: '', email: '', password: '', role: 'accountant' });
     setErrors({});
     setEditingUser(null);
+    setShowPassword(false);
+    setShowEditPassword(false);
   };
 
   const getRoleIcon = (role: string) => {
@@ -327,78 +331,137 @@ export default function UsersPage() {
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Add New User</CardTitle>
-              <CardDescription>
-                Create a new system user account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Name *</label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={errors.name ? 'border-red-500' : ''}
-                    placeholder="Enter full name"
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.name}</p>
-                  )}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Add New User</h2>
+                <button
+                  onClick={() => { setShowAddModal(false); resetForm(); }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-6">
+                Create a new system user account with appropriate permissions and access levels.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* User Information Section */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <Input
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className={errors.name ? 'border-red-500' : ''}
+                      placeholder="Enter full name"
+                      required
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <Input
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={errors.email ? 'border-red-500' : ''}
+                      placeholder="Enter email address"
+                      required
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password *
+                    </label>
+                    <div className="relative">
+                      <Input
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={handleChange}
+                        className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                        placeholder="Enter secure password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Password should be at least 6 characters long
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      User Role *
+                    </label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="accountant">Accountant - Manage invoices and payments</option>
+                      <option value="manager">Manager - Oversee operations and reports</option>
+                      <option value="admin">Admin - Full system access</option>
+                    </select>
+                    {errors.role && (
+                      <p className="text-sm text-red-500 mt-1">{errors.role}</p>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Email *</label>
-                  <Input
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={errors.email ? 'border-red-500' : ''}
-                    placeholder="Enter email address"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                  )}
+                {/* Role Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Role Permissions</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-xs text-gray-600">
+                      <Shield className="h-3 w-3 mr-2 text-blue-500" />
+                      <span><strong>Accountant:</strong> Create invoices, manage payments, view reports</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-600">
+                      <UserCheck className="h-3 w-3 mr-2 text-green-500" />
+                      <span><strong>Manager:</strong> All accountant permissions + user management</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-600">
+                      <UserPlus className="h-3 w-3 mr-2 text-purple-500" />
+                      <span><strong>Admin:</strong> Full system access and configuration</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Password *</label>
-                  <Input
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={errors.password ? 'border-red-500' : ''}
-                    placeholder="Enter password"
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-red-500 mt-1">{errors.password}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Role *</label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white"
-                  >
-                    <option value="accountant">Accountant</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  {errors.role && (
-                    <p className="text-sm text-red-500 mt-1">{errors.role}</p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-4">
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-6 border-t">
                   <Button
                     variant="outline"
                     onClick={() => { setShowAddModal(false); resetForm(); }}
@@ -409,91 +472,159 @@ export default function UsersPage() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 border border-blue-600"
                   >
-                    {isSubmitting ? 'Creating...' : 'Create User'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating User...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Create User
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Edit User Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Edit User</CardTitle>
-              <CardDescription>
-                Update user information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Name *</label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={errors.name ? 'border-red-500' : ''}
-                    placeholder="Enter full name"
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.name}</p>
-                  )}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Edit User</h2>
+                <button
+                  onClick={() => { setShowEditModal(false); resetForm(); }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-6">
+                Update user information and permissions. Leave password blank to keep the current password.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* User Information Section */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <Input
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className={errors.name ? 'border-red-500' : ''}
+                      placeholder="Enter full name"
+                      required
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <Input
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={errors.email ? 'border-red-500' : ''}
+                      placeholder="Enter email address"
+                      required
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        name="password"
+                        type={showEditPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={handleChange}
+                        className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                        placeholder="Leave blank to keep current password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEditPassword(!showEditPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                      >
+                        {showEditPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave blank to keep the current password unchanged
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      User Role *
+                    </label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="accountant">Accountant - Manage invoices and payments</option>
+                      <option value="manager">Manager - Oversee operations and reports</option>
+                      <option value="admin">Admin - Full system access</option>
+                    </select>
+                    {errors.role && (
+                      <p className="text-sm text-red-500 mt-1">{errors.role}</p>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Email *</label>
-                  <Input
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={errors.email ? 'border-red-500' : ''}
-                    placeholder="Enter email address"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                  )}
+                {/* Role Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Role Permissions</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-xs text-gray-600">
+                      <Shield className="h-3 w-3 mr-2 text-blue-500" />
+                      <span><strong>Accountant:</strong> Create invoices, manage payments, view reports</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-600">
+                      <UserCheck className="h-3 w-3 mr-2 text-green-500" />
+                      <span><strong>Manager:</strong> All accountant permissions + user management</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-600">
+                      <UserPlus className="h-3 w-3 mr-2 text-purple-500" />
+                      <span><strong>Admin:</strong> Full system access and configuration</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Password</label>
-                  <Input
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={errors.password ? 'border-red-500' : ''}
-                    placeholder="Leave blank to keep current password"
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-red-500 mt-1">{errors.password}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Role *</label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white"
-                  >
-                    <option value="accountant">Accountant</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  {errors.role && (
-                    <p className="text-sm text-red-500 mt-1">{errors.role}</p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-4">
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-6 border-t">
                   <Button
                     variant="outline"
                     onClick={() => { setShowEditModal(false); resetForm(); }}
@@ -504,14 +635,24 @@ export default function UsersPage() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 border border-blue-600"
                   >
-                    {isSubmitting ? 'Updating...' : 'Update User'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Updating User...
+                      </>
+                    ) : (
+                      <>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Update User
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
