@@ -117,37 +117,99 @@ export default function LedgerPage() {
         return;
       }
 
+      // Clone the element to avoid modifying the original
+      const clonedContent = ledgerContent.cloneNode(true) as HTMLElement;
+      clonedContent.style.position = 'absolute';
+      clonedContent.style.left = '-9999px';
+      clonedContent.style.top = '0';
+      document.body.appendChild(clonedContent);
+
+      // Override any LAB colors with standard colors
+      const style = document.createElement('style');
+      style.textContent = `
+        * {
+          color: rgb(0, 0, 0) !important;
+          background-color: rgb(255, 255, 255) !important;
+          border-color: rgb(209, 213, 219) !important;
+        }
+        
+        /* Add some padding to table cells for better spacing */
+        th, td {
+          padding: 6px 8px !important;
+        }
+        
+        .text-blue-600, .text-blue-600 * { color: rgb(37, 99, 235) !important; }
+        .text-green-600, .text-green-600 * { color: rgb(22, 163, 74) !important; }
+        .text-red-600, .text-red-600 * { color: rgb(220, 38, 38) !important; }
+        .text-gray-600, .text-gray-600 * { color: rgb(75, 85, 99) !important; }
+        .text-gray-700, .text-gray-700 * { color: rgb(55, 65, 81) !important; }
+        .text-gray-900, .text-gray-900 * { color: rgb(17, 24, 39) !important; }
+        .bg-gray-50, .bg-gray-50 * { background-color: rgb(249, 250, 251) !important; }
+        .bg-white, .bg-white * { background-color: rgb(255, 255, 255) !important; }
+        .border-gray-300 { border-color: rgb(209, 213, 219) !important; }
+        .hover\\:bg-gray-50:hover { background-color: rgb(249, 250, 251) !important; }
+        table, th, td { border-color: rgb(209, 213, 219) !important; }
+      `;
+      clonedContent.appendChild(style);
+
       // Generate canvas from HTML
-      const canvas = await html2canvas(ledgerContent as HTMLElement, {
+      const canvas = await html2canvas(clonedContent, {
         scale: 2, // Higher quality
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: ledgerContent.scrollWidth,
-        height: ledgerContent.scrollHeight,
+        logging: false,
+        width: clonedContent.scrollWidth,
+        height: clonedContent.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Additional color overrides in the cloned document
+          const allElements = clonedDoc.querySelectorAll('*');
+          allElements.forEach((el) => {
+            const element = el as HTMLElement;
+            const computedStyle = window.getComputedStyle(element);
+            
+            // Force background colors to rgb format
+            if (computedStyle.backgroundColor && computedStyle.backgroundColor.includes('lab')) {
+              element.style.backgroundColor = 'rgb(255, 255, 255)';
+            }
+            
+            // Force text colors to rgb format
+            if (computedStyle.color && computedStyle.color.includes('lab')) {
+              element.style.color = 'rgb(0, 0, 0)';
+            }
+            
+            // Force border colors to rgb format
+            if (computedStyle.borderColor && computedStyle.borderColor.includes('lab')) {
+              element.style.borderColor = 'rgb(209, 213, 219)';
+            }
+          });
+        },
       });
 
-      // Create PDF
+      // Remove cloned element
+      document.body.removeChild(clonedContent);
+
+      // Create PDF with small margins
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       
-      // Calculate dimensions
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
+      // Calculate dimensions with small margins
+      const imgWidth = 200; // A4 width in mm minus small margin
+      const pageHeight = 290; // A4 height in mm minus small margin
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
 
-      let position = 0;
+      let position = 5; // Small top margin
 
       // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
       // Add additional pages if needed
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
 
@@ -457,66 +519,66 @@ export default function LedgerPage() {
               </div>
             </div>
 
-          {/* Ledger Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">V No</th>
-                  <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">Date</th>
-                  <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">Product Name</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Qty</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Rate V.T</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Policy</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">PR INV</th>
-                  <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Amount</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Disc Reference</th>
-                  <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Debit</th>
-                  <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Credit</th>
-                  <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-2 py-1 text-xs">{entry.vNo}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs">{entry.date}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs">{entry.productName}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.qty}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.rateVt} SI</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.policy}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.prInv}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.amount.toLocaleString()}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.discReference}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.debit > 0 ? entry.debit.toLocaleString() : ''}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.credit > 0 ? entry.credit.toLocaleString() : ''}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-xs text-right font-medium">{entry.balance.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+           {/* Ledger Table */}
+           <div className="overflow-x-auto">
+             <table className="w-full border-collapse border border-gray-300">
+               <thead>
+                 <tr className="bg-gray-50">
+                   <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">V No</th>
+                   <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">Date</th>
+                   <th className="border border-gray-300 px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase">Product Name</th>
+                   <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Qty</th>
+                   <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Rate V.T</th>
+                   <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Policy</th>
+                   <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">PR INV</th>
+                   <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Amount</th>
+                   <th className="border border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-700 uppercase">Disc Reference</th>
+                   <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Debit</th>
+                   <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Credit</th>
+                   <th className="border border-gray-300 px-2 py-2 text-right text-xs font-medium text-gray-700 uppercase">Balance</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {entries.map((entry, index) => (
+                   <tr key={index} className="hover:bg-gray-50">
+                     <td className="border border-gray-300 px-2 py-1 text-xs">{entry.vNo}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs">{entry.date}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs">{entry.productName}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.qty}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.rateVt} SI</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.policy}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.prInv}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.amount.toLocaleString()}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.discReference}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.debit > 0 ? entry.debit.toLocaleString() : ''}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-right">{entry.credit > 0 ? entry.credit.toLocaleString() : ''}</td>
+                     <td className="border border-gray-300 px-2 py-1 text-xs text-right font-medium">{entry.balance.toLocaleString()}</td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
+           </div>
 
           {/* Summary Section */}
           {summary && (
             <div className="border-t border-gray-300 p-4 bg-gray-50">
               <div className="grid grid-cols-4 gap-4 text-sm">
                 <div className="text-center">
-                  <div className="font-semibold text-blue-600">{summary.totalCredit.toLocaleString()}</div>
+                  <div className="font-semibold text-blue-600  mb-2">{summary.totalCredit.toLocaleString()}</div>
                   <div className="text-gray-600">Total Credit</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-green-600">{summary.totalPaid.toLocaleString()}</div>
+                  <div className="font-semibold text-green-600 mb-2">{summary.totalPaid.toLocaleString()}</div>
                   <div className="text-gray-600">Total Paid</div>
                 </div>
                 <div className="text-center">
-                  <div className={`font-semibold ${summary.currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className={`font-semibold mb-2 ${summary.currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                     {summary.currentBalance.toLocaleString()}
                   </div>
                   <div className="text-gray-600">Current Balance</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-gray-600">{summary.totalEntries}</div>
+                  <div className="font-semibold text-gray-600 mb-2">{summary.totalEntries}</div>
                   <div className="text-gray-600">Total Entries</div>
                 </div>
               </div>
