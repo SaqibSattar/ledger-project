@@ -39,10 +39,16 @@ export async function GET(request: NextRequest) {
     if (fromDate || toDate) {
       invoiceQuery.invoiceDate = {};
       if (fromDate) {
-        invoiceQuery.invoiceDate.$gte = new Date(fromDate);
+        // Set to start of day
+        const fromDateObj = new Date(fromDate);
+        fromDateObj.setHours(0, 0, 0, 0);
+        (invoiceQuery.invoiceDate as Record<string, unknown>).$gte = fromDateObj;
       }
       if (toDate) {
-        invoiceQuery.invoiceDate.$lte = new Date(toDate);
+        // Set to end of day
+        const toDateObj = new Date(toDate);
+        toDateObj.setHours(23, 59, 59, 999);
+        (invoiceQuery.invoiceDate as Record<string, unknown>).$lte = toDateObj;
       }
     }
 
@@ -76,10 +82,16 @@ export async function GET(request: NextRequest) {
     if (fromDate || toDate) {
       paymentQuery.paymentDate = {};
       if (fromDate) {
-        paymentQuery.paymentDate.$gte = new Date(fromDate);
+        // Set to start of day
+        const fromDateObj = new Date(fromDate);
+        fromDateObj.setHours(0, 0, 0, 0);
+        (paymentQuery.paymentDate as Record<string, unknown>).$gte = fromDateObj;
       }
       if (toDate) {
-        paymentQuery.paymentDate.$lte = new Date(toDate);
+        // Set to end of day
+        const toDateObj = new Date(toDate);
+        toDateObj.setHours(23, 59, 59, 999);
+        (paymentQuery.paymentDate as Record<string, unknown>).$lte = toDateObj;
       }
     }
 
@@ -92,6 +104,7 @@ export async function GET(request: NextRequest) {
     const ledgerEntries: Array<{
       vNo: string;
       date: string;
+      dateObj: Date; // Add actual date object for sorting
       productName: string;
       qty: number;
       rateVt: number;
@@ -108,19 +121,21 @@ export async function GET(request: NextRequest) {
 
     // Add invoice entries with detailed product information
     invoices.forEach(invoice => {
-      invoice.items.forEach((item: any) => {
+      invoice.items.forEach((item: Record<string, unknown>) => {
         ledgerEntries.push({
           vNo: invoice.invoiceNumber,
-          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8), // DD-MM-YY format
-          productName: item.nameSnapshot,
-          qty: item.quantity,
-          rateVt: item.rate,
+          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 10), // DD-MM-YYYY format
+          dateObj: invoice.invoiceDate, // Keep original date for sorting
+          productName: item.nameSnapshot as string,
+          qty: item.quantity as number,
+          rateVt: item.rate as number,
           policy: 'CASH',
           prInv: '',
-          amount: item.amount,
+          amount: item.amount as number,
           discReference: '',
-          debit: item.amount,
+          debit: item.amount as number,
           credit: 0,
+          balance: 0, // Will be calculated later
           customer: invoice.customerId,
           createdBy: invoice.createdBy,
         });
@@ -131,7 +146,8 @@ export async function GET(request: NextRequest) {
     payments.forEach(payment => {
       ledgerEntries.push({
         vNo: `PAY-${payment._id.toString().slice(-4)}`,
-        date: payment.paymentDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8), // DD-MM-YY format
+        date: payment.paymentDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 10), // DD-MM-YYYY format
+        dateObj: payment.paymentDate, // Keep original date for sorting
         productName: `Payment for Invoice #${payment.invoiceId.invoiceNumber}`,
         qty: 1,
         rateVt: payment.amount,
@@ -141,6 +157,7 @@ export async function GET(request: NextRequest) {
         discReference: '',
         debit: 0,
         credit: payment.amount,
+        balance: 0, // Will be calculated later
         customer: payment.invoiceId.customerId,
         createdBy: payment.createdBy,
       });
@@ -156,7 +173,8 @@ export async function GET(request: NextRequest) {
         const paymentAmount = invoice.paidAmount - totalPaidFromRecords;
         ledgerEntries.push({
           vNo: `PAY-${invoice.invoiceNumber.slice(-4)}`,
-          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 8),
+          date: invoice.invoiceDate.toISOString().split('T')[0].split('-').reverse().join('-').slice(0, 10), // DD-MM-YYYY format
+          dateObj: invoice.invoiceDate, // Keep original date for sorting
           productName: `Payment for Invoice #${invoice.invoiceNumber}`,
           qty: 1,
           rateVt: paymentAmount,
@@ -166,19 +184,22 @@ export async function GET(request: NextRequest) {
           discReference: '',
           debit: 0,
           credit: paymentAmount,
+          balance: 0, // Will be calculated later
           customer: invoice.customerId,
           createdBy: invoice.createdBy,
         });
       }
     });
 
-    // Sort by date
-    ledgerEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Sort by date using the actual date objects
+    ledgerEntries.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
 
     // Calculate running balance
     const balances = calculateRunningBalance(ledgerEntries);
     ledgerEntries.forEach((entry, index) => {
       entry.balance = balances[index];
+      // Remove dateObj from the response (it was only used for sorting)
+      delete (entry as Record<string, unknown>).dateObj;
     });
 
     // Calculate totals
